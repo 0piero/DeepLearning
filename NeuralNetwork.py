@@ -69,7 +69,7 @@ class MLP(Graph):
                 self.adiciona_aresta(i, j,node)
                 n+=1
             m+=1
-    
+    @property
     def shape(self):
         s = [(self.inp,self.hid)]
         for i in range(self.dl-1):
