@@ -2,10 +2,8 @@ from Graph import Graph
 import numpy as np
 from random import random
 import matplotlib.pyplot as plt
-class Node:
-    def __init__(self, bias , weight):
-
-        self.bias = bias
+class E:
+    def __init__(self, weight):
         self.weight = weight
 
     def __repr__(self):
@@ -19,20 +17,21 @@ class MLP(Graph):
         self.hid = dense_layer_size
         self.dl = dense_layers
         self.out = output_layer_size
-
-
+        #print(self.shape)
+        x = [i[1] for i in self.shape]
+        #print(x)
+        self.bias = self.initialize_bias(x)
+        #print(self.bias)
         #initialize weights and bias for each layer
         w = self.initialize_weights(input_layer_size, dense_layer_size)
-        b = self.initialize_bias(input_layer_size, dense_layer_size)
-        #w = [[0.1,0.1,0.1],[0.1,0.1,0.1]]
-        #b = [[0.1,0.1,0.1],[0.1,0.1,0.1]]
+
         m = 0
         for i in range(1, input_layer_size+1):
             n = 0
             for j in range(input_layer_size + 1, input_layer_size + dense_layer_size+1):
 
 
-                node = Node(b[m][n], w[m][n])
+                node = E(w[m][n])
                 self.adiciona_aresta(i, j,node)
                 n+=1
             m += 1
@@ -40,9 +39,7 @@ class MLP(Graph):
         k = 0
         m = 0
         w = self.initialize_weights(dense_layer_size, dense_layer_size)
-        #w = [[0.1,0.1,0.1],[0.1,0.1,0.1],[0.1,0.1,0.1]]
-        #b = [[0.1,0.1,0.1],[0.1,0.1,0.1],[0.1,0.1,0.1]]
-        b = self.initialize_bias(dense_layer_size, dense_layer_size)
+
         for j in range(input_layer_size + 1, input_layer_size + dense_layer_size * (dense_layers-1) + 1):
             n = 0
             if k > dense_layer_size - 1:
@@ -50,7 +47,7 @@ class MLP(Graph):
                 m = 0
             for i in range(j + dense_layer_size - k, j + dense_layer_size*2 - k):
 
-                node = Node(b[m][n], w[m][n])
+                node = E(w[m][n])
                 self.adiciona_aresta(j, i, node)
                 n += 1
             k += 1
@@ -58,14 +55,12 @@ class MLP(Graph):
 
         m = 0
         w = self.initialize_weights(dense_layer_size, output_layer_size)
-        b = self.initialize_bias(dense_layer_size, output_layer_size)
-        #w = [[0.1],[0.1],[0.1]]
-        #b = [[0.1], [0.1], [0.1]]
+
         for i in range(self.v - output_layer_size - dense_layer_size + 1, self.v - output_layer_size + 1):
             n=0
             for j in range(self.v - output_layer_size + 1, self.v + 1):
 
-                node = Node(b[m][n], w[m][n])
+                node = E(w[m][n])
                 self.adiciona_aresta(i, j,node)
                 n+=1
             m+=1
@@ -97,7 +92,7 @@ class MLP(Graph):
             aux.append(np.multiply([node.weight for node in self.gr[i][self.inp:self.inp+self.hid]], activation[i]))
         #print(aux)
         #print([node.bias for node in self.gr[0][self.inp:self.inp+self.hid]])
-        aux = sum(aux) + [node.bias for node in self.gr[0][self.inp:self.inp+self.hid]]
+        aux = sum(aux) + self.bias[0]
         h.append(aux)
         activation = self.sigmoid(aux)
         activations.append(activation)
@@ -112,7 +107,7 @@ class MLP(Graph):
                 aux.append(np.multiply([node.weight for node in self.gr[j][i + self.hid:i+self.hid + self.hid]], activation[k]))
                 k+=1
 
-            aux = sum(aux) +[node.bias for node in self.gr[i][i + self.hid:i+self.hid + self.hid]]
+            aux = sum(aux) + self.bias[i]
 
             h.append(aux)
             activation = self.sigmoid(aux)
@@ -124,7 +119,7 @@ class MLP(Graph):
 
             aux.append(np.multiply([node.weight for node in self.gr[i][self.v-self.out:self.v]], activation[j]))
             j+=1
-        aux = sum(aux)+[node.bias for node in self.gr[self.v-self.out-self.hid][self.v-self.out:self.v]]
+        aux = sum(aux) + self.bias[-1]
         h.append(aux)
         activation = self.sigmoid(aux)
         activations.append(activation)
@@ -137,7 +132,7 @@ class MLP(Graph):
         weight_d = [np.dot(np.transpose([activations[-2]]),[dE])]
         #   print(weight_d)
 
-        bias_d = [np.dot(np.transpose([np.ones(activations[-2].shape)]),[dE])]
+        bias_d = [dE]
         #print(bias_d)
 
         W = []
@@ -153,7 +148,7 @@ class MLP(Graph):
                 dE = np.dot(dE, np.transpose(W)) * [self.sigmoid_derivative(h[-i])]
                 #print(dE)
                 weight_d.append(np.dot(np.transpose([activations[-(i+1)]]), dE))
-                bias_d.append(np.dot(np.transpose([np.ones(activations[-(i+1)].shape)]), dE))
+                bias_d.append(dE.reshape(dE.shape[1]))
                 #print(weight_d)
                 #print(bias_d)
 
@@ -168,7 +163,7 @@ class MLP(Graph):
                 dE = np.dot(dE, np.transpose(W[(i-2)*self.hid:(i-1)*self.hid])) * [self.sigmoid_derivative(h[-i])]
                 #print(dE)
                 weight_d.append(np.dot(np.transpose([activations[-(i + 1)]]), dE))
-                bias_d.append(np.dot(np.transpose([np.ones(activations[-(i+1)].shape)]), dE))
+                bias_d.append(dE.reshape(dE.shape[1]))
                 #print(weight_d)
                 #print(bias_d)
                 k -= self.hid
@@ -180,15 +175,15 @@ class MLP(Graph):
 
         for i in range(epochs):
             dE_dW = [np.zeros(s) for s in reversed(self.shape)]
-            dE_dB = [np.zeros(s) for s in reversed(self.shape)]
+            dE_dB = [np.zeros(s) for s in reversed([i[1] for i in self.shape])]
             #randi = np.random.choice(range(0,len(inputs)), batch_size, replace = False)
             r = np.random.permutation(range(0,len(inputs)))
-            for k in range(0,len(inputs)-batch_size,batch_size):
+            for k in range(0,len(inputs),batch_size):
                 for l in r[k:k+batch_size]:
                     dw, db = self.backprop(inputs[l], targets[l])
 
                     dE_dW = [np.sum(np.array([a, b]), axis=0) for a, b in zip(dE_dW, dw)]
-                    dE_dB = [np.sum(np.array([a, b]), axis=0) for a, b in zip(dE_dW, db)]
+                    dE_dB = [np.sum(np.array([a, b]), axis=0) for a, b in zip(dE_dB, db)]
 
                 self.gradient_descent(dE_dW, dE_dB, learning_rate / batch_size)
             #for j in randi:
@@ -205,17 +200,18 @@ class MLP(Graph):
             self.error = np.zeros((self.out))
 
     def gradient_descent(self, dw, db, l):
-
+        j = 0
+        #print(db)
+        for d in reversed(db):
+            self.bias[j]+= l*d
+            j+=1
         for i in range(self.inp):
             k = 0
             for j in range(self.inp, self.inp + self.hid):
 
                 self.gr[i][j].weight += l * dw[-1][i][k]
-                self.gr[i][j].bias += l * db[-1][i][k]
                 self.gr[j][i].weight += l * dw[-1][i][k]
-                self.gr[j][i].bias += l * db[-1][i][k]
                 k += 1
-
         k = 0
         m = 2
         n = 0
@@ -229,9 +225,7 @@ class MLP(Graph):
             for i in range(j + self.hid - k, j + self.hid * 2 - k):
 
                 self.gr[j][i].weight += l * dw[-m][n][o]
-                self.gr[j][i].bias += l * db[-m][n][o]
                 self.gr[i][j].weight += l * dw[-m][n][o]
-                self.gr[i][j].bias += l * db[-m][n][o]
                 o += 1
 
             n += 1
@@ -243,9 +237,7 @@ class MLP(Graph):
             for j in range(self.v - self.out, self.v):
 
                 self.gr[j][i].weight += l * dw[0][n][m]
-                self.gr[j][i].bias += l * db[0][n][m]
                 self.gr[i][j].weight += l * dw[0][n][m]
-                self.gr[i][j].bias += l * db[0][n][m]
                 m += 1
             n += 1
     def evaluate(self, inputs):
@@ -257,7 +249,7 @@ class MLP(Graph):
             aux.append(np.multiply([node.weight for node in self.gr[i][self.inp:self.inp + self.hid]], activation[i]))
         # print(aux)
         # print([node.bias for node in self.gr[0][self.inp:self.inp+self.hid]])
-        aux = sum(aux) + [node.bias for node in self.gr[0][self.inp:self.inp + self.hid]]
+        aux = sum(aux)
 
         activation = self.sigmoid(aux)
 
@@ -270,7 +262,7 @@ class MLP(Graph):
                                        activation[k]))
                 k += 1
 
-            aux = sum(aux) + [node.bias for node in self.gr[i][i + self.hid:i + self.hid + self.hid]]
+            aux = sum(aux)
 
 
             activation = self.sigmoid(aux)
@@ -281,7 +273,7 @@ class MLP(Graph):
         for i in range(self.v - self.out - self.hid, self.v - self.out):
             aux.append(np.multiply([node.weight for node in self.gr[i][self.v - self.out:self.v]], activation[j]))
             j += 1
-        aux = sum(aux) + [node.bias for node in self.gr[self.v - self.out - self.hid][self.v - self.out:self.v]]
+        aux = sum(aux)
 
         activation = self.sigmoid(aux)
 
@@ -313,14 +305,21 @@ class MLP(Graph):
         # print(scaled.mean(), scaled.std())
         #print(scaled)
         return scaled
-    def initialize_bias(self, n, m):
-        lower, upper = -(1.0 / np.sqrt(n)), (1.0 / np.sqrt(n))
-        numbers = np.random.rand(n, m)
+    def initialize_bias(self, m):
+        lower, upper = -(1.0 / np.sqrt(sum(m))), (1.0 / np.sqrt(sum(m)))
+        numbers = np.random.rand(1, sum(m))
         r_max = np.max(numbers)
         r_min = np.min(numbers)
-        range = r_max - r_min
-        scaled = ((numbers - r_min) / (range)) * (upper - lower) + lower
-        return scaled
+        range_ = r_max - r_min
+        scaled = ((numbers - r_min) / (range_)) * (upper - lower) + lower
+        scaled_r = []
+        j = 0
+        for i in range(len(m)):
+
+            scaled_r.append(scaled[0][j:j+m[i]])
+            j = m[i]
+
+        return scaled_r
 
 
 if __name__ == "__main__":
@@ -328,10 +327,10 @@ if __name__ == "__main__":
     targets = np.array([[i[0] + i[1]] for i in items])
     #print(f"{items}")
     #print(f"{targets}")
-    net = MLP(2, 3, 1, 2)
+    net = MLP(2, 3, 1, 1)
     #net.show()
-    net.mini_batch(items, targets, 500, 64, 0.1)
-    plt.plot(range(0, 500, 10), net.loss)
+    net.mini_batch(items, targets, 1000, 64, 0.1)
+    plt.plot(range(0, 1000, 10), net.loss)
     plt.show()
     #print(net.evaluate([0.1,0.1]))
     #net.backprop([0.1,0.1],[0.2])
